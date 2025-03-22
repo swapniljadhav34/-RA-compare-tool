@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HTML Compare & Edit Tool</title>
+  <!-- Load jsdiff library version 4.0.2 which exposes the global variable "Diff" -->
+  <script src="https://cdn.jsdelivr.net/npm/diff@4.0.2/dist/diff.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    td {
+      border: 2px solid #000;
+      vertical-align: top;
+    }
+    /* Part 1 & 3 take 45%, Part 2 takes 10% */
+    #part1, #part3 {
+      width: 45%;
+      height: 500px;
+      overflow: auto;
+      padding: 10px;
+    }
+    #part2 {
+      width: 10%;
+      padding: 10px;
+      text-align: center;
+    }
+    #editBox {
+      width: 90%;
+      height: 100px;
+    }
+    .added {
+      background-color: #a6f3a6;
+    }
+    .removed {
+      text-decoration: line-through;
+      background-color: #f3a6a6;
+    }
+  </style>
+</head>
+<body>
+
+<h1>HTML Compare & Edit Tool</h1>
+
+<!-- Controls for loading and comparing HTML -->
+<input type="file" id="fileInput" accept=".html">
+<button onclick="loadHTML()">Load HTML</button>
+<button onclick="compareHTML()">Compare</button>
+
+<table>
+  <tr>
+    <!-- Part 1: Original HTML loaded -->
+    <td id="part1">
+      <h2>Original HTML</h2>
+      <div id="originalHTML">No file loaded</div>
+    </td>
+    <!-- Part 2: Editor (for editing selected text) -->
+    <td id="part2">
+      <h2>Editor</h2>
+      <textarea id="editBox"></textarea><br>
+      <button onclick="applyEdit()">Submit</button>
+    </td>
+    <!-- Part 3: Editable copy -->
+    <td id="part3">
+      <h2>Editable Copy</h2>
+      <div id="editableHTML">No content yet</div>
+    </td>
+  </tr>
+</table>
+
+<script>
+  let selectedElement = null;
+
+  // Function to load an HTML file and place its content in Part 1 and Part 3.
+  function loadHTML() {
+    const fileInput = document.getElementById('fileInput');
+    const file = fileInput.files[0];
+
+    if (!file) {
+      alert("Please select an HTML file.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const htmlContent = e.target.result;
+      document.getElementById('originalHTML').innerHTML = htmlContent;
+      document.getElementById('editableHTML').innerHTML = htmlContent;
+
+      // After loading, attach click events for editing to Part 3's elements.
+      makeEditable(document.getElementById('editableHTML'));
+    };
+    reader.readAsText(file);
+  }
+
+  // Function to attach click events to every element in container so they become editable.
+  function makeEditable(container) {
+    // Remove any previously attached event listeners by cloning the node.
+    const newContainer = container.cloneNode(true);
+    container.parentNode.replaceChild(newContainer, container);
+
+    newContainer.querySelectorAll("*").forEach(function(element) {
+      element.addEventListener("click", function(event) {
+        event.stopPropagation(); // Prevent events from bubbling up.
+        selectedElement = this;
+        document.getElementById("editBox").value = this.innerHTML;
+      });
+    });
+  }
+
+  // Function to apply edits from the editor (Part 2) to the selected element in Part 3.
+  function applyEdit() {
+    if (selectedElement) {
+      selectedElement.innerHTML = document.getElementById("editBox").value;
+    }
+  }
+
+  // Function to compare the original HTML (Part 1) with the edited HTML (Part 3).
+  function compareHTML() {
+    const original = document.getElementById('originalHTML').innerHTML;
+    const edited = document.getElementById('editableHTML').innerHTML;
+
+    // Use Diff.diffWords from the loaded jsdiff library.
+    const diff = Diff.diffWords(original, edited);
+    
+    let resultHTML = '';
+    diff.forEach(function(part) {
+      if (part.added) {
+        resultHTML += `<ins class="added">${part.value}</ins>`;
+      } else if (part.removed) {
+        resultHTML += `<del class="removed">${part.value}</del>`;
+      } else {
+        resultHTML += part.value;
+      }
+    });
+
+    // Display the diff result in Part 3.
+    document.getElementById('editableHTML').innerHTML = resultHTML;
+  }
+</script>
+
+</body>
+</html>
